@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TemuMaster 11.5 · 稳定版</title>
+    <title>TemuMaster 11.6 · 调试版</title>
     <style>
         :root { --temu: #ff4719; }
         body { font-family: -apple-system, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
@@ -14,16 +14,17 @@
         input { width: 100%; padding: 16px; margin: 15px 0; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; font-size: 1.1rem; }
         button { background: var(--temu); color: white; border: none; width: 100%; padding: 18px; border-radius: 12px; font-weight: bold; font-size: 1.2rem; cursor: pointer; }
         .task-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
-        .task-card { background: #fff; border: 1px solid #eee; border-radius: 12px; position: relative; aspect-ratio: 1/1; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .task-card { background: #fff; border: 1px solid #eee; border-radius: 12px; position: relative; aspect-ratio: 1/1; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .task-card img { width: 100%; height: 100%; object-fit: cover; }
-        .status-tag { position: absolute; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: white; font-size: 10px; text-align: center; padding: 6px 2px; z-index: 10; font-weight: bold; }
+        .status-tag { position: absolute; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); color: white; font-size: 10px; text-align: center; padding: 4px 2px; z-index: 10; line-height: 1.4; }
         .loading-spin { border: 3px solid #f3f3f3; border-top: 3px solid var(--temu); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .debug-info { font-size: 8px; color: #aaa; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-<header>TemuMaster POD 生产系统</header>
+<header>TemuMaster 11.6 · 透明调试版</header>
 
 <div class="hidden-config">
     <input type="text" id="baseUrl" value="https://api.jiekou.ai">
@@ -32,39 +33,37 @@
 
 <div class="container">
     <div class="card">
-        <input type="text" id="subject" placeholder="只输入英文单词, 如: Christmas Dog">
-        <button onclick="startBatchGen()">启动 AI 批量生图</button>
+        <input type="text" id="subject" placeholder="只输入单词, 如: Christmas Dog">
+        <button onclick="startBatchGen()">启动批量生图</button>
     </div>
+    <div id="debug-log" style="font-size: 10px; color: red; margin: 10px 0; text-align: center;"></div>
     <div class="task-grid" id="grid"></div>
 </div>
 
 <script>
-    // --- 核心优化：去掉所有复杂的 MJ 参数，只保留风格描述词 ---
     const styles = [
-        ", 90s vintage bootleg t-shirt style --ar 1:1",
-        ", cute 3D isometric clay art --ar 1:1",
-        ", watercolor flower aesthetic style --ar 1:1",
-        ", minimalist flat vector sticker design --ar 1:1"
+        ", 90s vintage bootleg style --ar 1:1",
+        ", cute 3D clay render --ar 1:1",
+        ", watercolor illustration --ar 1:1",
+        ", flat vector design --ar 1:1"
     ];
 
     async function startBatchGen() {
         const baseUrl = document.getElementById('baseUrl').value;
         const apiKey = document.getElementById('apiKey').value;
         const subject = document.getElementById('subject').value;
-
-        if(!subject) return alert("请输入生图主题");
-        const grid = document.getElementById('grid');
-        grid.innerHTML = "";
-
+        if(!subject) return alert("请输入内容");
+        
+        document.getElementById('grid').innerHTML = "";
+        
         styles.forEach((style, i) => {
-            const fullPrompt = subject + style;
+            const prompt = subject + style;
             const div = document.createElement('div');
             div.className = 'task-card';
             div.id = `card-${i}`;
-            div.innerHTML = `<div class="status-tag" id="tag-${i}">正在启动...</div><div class="loading-spin"></div>`;
-            grid.appendChild(div);
-            
-            submitTask(i, fullPrompt, baseUrl, apiKey);
+            div.innerHTML = `<div class="status-tag" id="tag-${i}">正在请求...</div><div class="loading-spin"></div><div class="debug-info" id="debug-${i}"></div>`;
+            document.getElementById('grid').appendChild(div);
+            submitTask(i, prompt, baseUrl, apiKey);
         });
     }
 
@@ -76,16 +75,14 @@
                 body: JSON.stringify({ text: prompt })
             });
             const data = await res.json();
-            
             if(data.task_id) {
-                updateStatus(i, "⏳ 已提交,排队中");
+                updateStatus(i, "⏳ 任务已创建", `ID: ${data.task_id}`);
                 pollStatus(i, data.task_id, baseUrl, apiKey);
             } else {
-                // 如果服务器报错，直接显示报错原因
-                updateStatus(i, "错误:" + (data.message || "请求拒收"));
+                updateStatus(i, "❌ 提交失败", JSON.stringify(data));
             }
         } catch (e) {
-            updateStatus(i, "连接异常");
+            updateStatus(i, "❌ 连接错误", e.message);
         }
     }
 
@@ -96,37 +93,45 @@
                     headers: { 'Authorization': `Bearer ${apiKey}` }
                 });
                 const result = await res.json();
-                const status = (result.status || "").toLowerCase();
                 
-                if(status === "success" || status === "finished") {
+                // --- 这里是调试核心：把状态原文显示出来 ---
+                const rawStatus = result.status;
+                const rawProcess = result.process || (result.data ? result.data.process : "0%");
+                
+                document.getElementById(`debug-${i}`).innerText = `Status: ${rawStatus} | Proc: ${rawProcess}`;
+
+                if(rawStatus === "success" || rawStatus === "finished" || rawStatus === "SUCCESS") {
                     clearInterval(timer);
-                    if(result.data && result.data.url) {
-                        renderImage(i, result.data.url);
+                    // 兼容多种图片返回路径
+                    const imgUrl = result.imageUrl || (result.data ? result.data.url : "");
+                    if(imgUrl) {
+                        renderImage(i, imgUrl);
                     } else {
-                        updateStatus(i, "图片处理中...");
+                        updateStatus(i, "⚠️ 拿到成功信号但没拿到图", "请检查API文档");
                     }
-                } else if(status === "failed") {
+                } else if(rawStatus === "failed" || rawStatus === "error") {
                     clearInterval(timer);
-                    updateStatus(i, "AI 生成中断");
+                    updateStatus(i, "❌ 生成失败", rawStatus);
                 } else {
-                    // 动态进度显示
-                    const progress = result.process || (result.data ? result.data.process : "") || "排队中";
-                    updateStatus(i, `正在绘制 ${progress}`);
+                    updateStatus(i, `🎨 绘制中: ${rawProcess}`);
                 }
             } catch (e) {
-                console.error("Poll fail");
+                console.error("轮询异常");
             }
         }, 5000); 
     }
 
-    function updateStatus(i, text) {
+    function updateStatus(i, text, debugText = "") {
         const tag = document.getElementById(`tag-${i}`);
         if(tag) tag.innerText = text;
+        if(debugText) {
+            document.getElementById(`debug-${i}`).innerText = debugText.substring(0, 50);
+        }
     }
 
     function renderImage(i, url) {
         const card = document.getElementById(`card-${i}`);
-        card.innerHTML = `<div class="status-tag" style="background:#2ecc71">生成成功</div><img src="${url}" onclick="window.open('${url}')">`;
+        card.innerHTML = `<div class="status-tag" style="background:#2ecc71">✅ 生成成功 (点击大图)</div><img src="${url}" onclick="window.open('${url}')">`;
     }
 </script>
 
