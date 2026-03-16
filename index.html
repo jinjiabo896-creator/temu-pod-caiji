@@ -3,193 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Temu Master POD · MJ 自动化引擎</title>
+    <title>TemuMaster 10.2 · MJ 生产力工具</title>
     <style>
-        :root { --temu: #ff4719; --dark: #121212; --card: #ffffff; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: #f4f4f4; margin: 0; color: #333; }
+        :root { --temu: #ff4719; --paper: #f9f9f9; }
+        body { font-family: -apple-system, sans-serif; background: #eee; margin: 0; padding: 0; }
+        header { background: var(--temu); color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 1.2rem; }
         
-        /* 布局 */
-        header { background: var(--temu); color: white; padding: 20px; text-align: center; position: sticky; top: 0; z-index: 100; }
-        .config-box { background: #fff3f0; padding: 15px; border-bottom: 2px solid var(--temu); font-size: 0.8rem; }
-        .container { padding: 15px; max-width: 600px; margin: 0 auto; }
-
-        /* 卡片样式 */
-        .section { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        h3 { margin-top: 0; font-size: 1rem; color: var(--temu); border-left: 4px solid var(--temu); padding-left: 10px; }
-
-        input, textarea, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        .setup-box { background: #fff3f0; padding: 15px; border-bottom: 2px solid var(--temu); }
+        .setup-box small { color: #666; font-size: 0.7rem; }
         
-        /* 裂变任务预览 */
-        .task-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .task-card { background: #fafafa; border: 1px solid #eee; border-radius: 8px; padding: 10px; position: relative; min-height: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+        .container { padding: 15px; max-width: 500px; margin: 0 auto; }
+        .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        
+        input { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        button { background: var(--temu); color: white; border: none; width: 100%; padding: 16px; border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer; }
+        
+        .task-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .task-card { background: #fff; border: 1px solid #eee; border-radius: 8px; position: relative; aspect-ratio: 1/1; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .task-card img { width: 100%; height: 100%; object-fit: cover; }
-        .status-tag { position: absolute; top: 5px; right: 5px; font-size: 10px; padding: 2px 6px; border-radius: 10px; background: #999; color: white; }
-        .status-working { background: var(--temu); animation: pulse 1.5s infinite; }
-        .status-success { background: #2ecc71; }
-
-        button { background: var(--temu); color: white; border: none; width: 100%; padding: 16px; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; }
-        button:disabled { background: #ccc; }
-        .secondary-btn { background: #333; margin-top: 10px; }
-
-        @keyframes pulse { 50% { opacity: 0.5; } }
+        
+        .status-tag { position: absolute; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: white; font-size: 10px; text-align: center; padding: 2px 0; z-index: 10; }
+        .loading-spin { border: 3px solid #f3f3f3; border-top: 3px solid var(--temu); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<header>
-    <h1>Temu Master POD</h1>
-    <span style="font-size: 0.7rem;">自动化生图与云端中转系统</span>
-</header>
+<header>TemuMaster POD 自动化生图</header>
 
-<!-- 1. API 配置 -->
-<div class="config-box">
-    <input type="text" id="baseUrl" placeholder="中转站 API 地址 (如 https://api.xxx.com)">
-    <input type="password" id="apiKey" placeholder="输入中转站 API Key">
+<div class="setup-box">
+    <small>接口AI 地址：</small>
+    <input type="text" id="baseUrl" value="https://api.jiekou.ai">
+    <small>API 令牌 (Token)：</small>
+    <input type="password" id="apiKey" placeholder="在此粘贴 sk-xxxxxx">
 </div>
 
 <div class="container">
-    <!-- 2. 采集与关键词 -->
-    <div class="section">
-        <h3>1. 确定生图核心</h3>
-        <input type="text" id="mainSubject" placeholder="核心主体 (如: Cute Bulldog with Sunglasses)">
-        <select id="aspectRatio">
-            <option value=" --ar 1:1">1:1 (Temu 主图)</option>
-            <option value=" --ar 3:4">3:4 (Temu 详情图)</option>
-            <option value=" --ar 2:3">2:3 (服装类常用)</option>
-        </select>
+    <div class="card">
+        <small>输入生图主体 (例如: Retro Coffee Cat --ar 3:4)</small>
+        <input type="text" id="subject" placeholder="英文描述效果更好">
+        <button onclick="startBatchGen()">🚀 批量生图并裂变</button>
     </div>
 
-    <!-- 3. 裂变引擎 -->
-    <div class="section">
-        <h3>2. 裂变维度 (自动生成 4 组)</h3>
-        <div id="taskContainer" class="task-grid">
-            <div style="grid-column: span 2; color: #999; text-align: center; padding: 20px;">等待启动裂变...</div>
-        </div>
-        <button id="startBtn" onclick="initiateFission()">🚀 启动批量裂变生图</button>
-        <button class="secondary-btn" onclick="syncToCloud()">☁️ 一键同步至云储存</button>
+    <div class="task-grid" id="grid">
+        <!-- 生成的任务卡片将显示在这里 -->
     </div>
 </div>
 
 <script>
-    let tasks = []; // 存储所有生图任务
+    // 预设 4 种爆款裂变风格
     const styles = [
-        "Vintage 90s Bootleg style, high contrast",
-        "Watercolor illustration, clean white background",
-        "Cute 3D render style, vibrant colors",
-        "Minimalist Vector art, flat design"
+        ", 90s vintage bootleg style, white background",
+        ", cute 3D clay render, vibrant color, high detail",
+        ", watercolor illustration, soft aesthetic, clean",
+        ", minimalist line art, vector style, flat design"
     ];
 
-    // 核心逻辑：启动批量裂变
-    async function initiateFission() {
+    async function startBatchGen() {
         const baseUrl = document.getElementById('baseUrl').value;
         const apiKey = document.getElementById('apiKey').value;
-        const subject = document.getElementById('mainSubject').value;
-        const ar = document.getElementById('aspectRatio').value;
+        const subject = document.getElementById('subject').value;
 
-        if(!baseUrl || !apiKey || !subject) {
-            alert("请完整填写 API 地址、Key 和生图主体");
-            return;
-        }
+        if(!apiKey || apiKey.length < 10) return alert("请先填入有效的 API 令牌");
+        if(!subject) return alert("请输入生图主体内容");
 
-        const container = document.getElementById('taskContainer');
-        container.innerHTML = "";
-        tasks = [];
+        const grid = document.getElementById('grid');
+        grid.innerHTML = ""; // 清空上次结果
 
-        // 循环创建 4 个裂变任务
-        for(let i = 0; i < styles.length; i++) {
-            const prompt = `${subject}, ${styles[i]}${ar}`;
-            const taskObj = { id: null, prompt: prompt, status: 'pending', url: null };
-            tasks.push(taskObj);
-
-            // 创建 UI 卡片
-            const card = document.createElement('div');
-            card.className = 'task-card';
-            card.id = `task-card-${i}`;
-            card.innerHTML = `<span class="status-tag status-working">等待排队</span><small style="font-size:10px; padding:5px;">${prompt}</small>`;
-            container.appendChild(card);
-
-            // 提交给 MJ 中转站
-            submitToMJ(i, prompt, baseUrl, apiKey);
-        }
+        styles.forEach((style, i) => {
+            const fullPrompt = subject + style;
+            createCard(i, fullPrompt);
+            submitTask(i, fullPrompt, baseUrl, apiKey);
+        });
     }
 
-    // 第一步：提交 Imagine 任务
-    async function submitToMJ(index, prompt, baseUrl, apiKey) {
-        try {
-            const response = await fetch(`${baseUrl}/mj/submit/imagine`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'mj-api-secret': apiKey // 或者是 'Authorization': `Bearer ${apiKey}` 取决于你的中转站
-                },
-                body: JSON.stringify({ prompt: prompt })
-            });
+    function createCard(i, prompt) {
+        const div = document.createElement('div');
+        div.className = 'task-card';
+        div.id = `card-${i}`;
+        div.innerHTML = `<div class="status-tag" id="tag-${i}">队列中...</div><div class="loading-spin"></div>`;
+        document.getElementById('grid').appendChild(div);
+    }
 
-            const data = await response.json();
-            if(data.code === 1 || data.result) {
-                const taskId = data.result; // 获取任务 ID
-                tasks[index].id = taskId;
-                updateCardStatus(index, "生图中...", "working");
-                
-                // 开始轮询查询结果
-                pollTaskStatus(index, taskId, baseUrl, apiKey);
+    // 第一步：提交任务 (针对 JiekouAI 优化)
+    async function submitTask(i, prompt, baseUrl, apiKey) {
+        try {
+            const res = await fetch(`${baseUrl}/v3/async/mj-txt2img`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({ text: prompt })
+            });
+            const data = await res.json();
+            
+            if(data.task_id) {
+                // 提交成功，开始轮询
+                pollStatus(i, data.task_id, baseUrl, apiKey);
             } else {
-                updateCardStatus(index, "提交失败", "error");
+                updateStatus(i, "提交失败: 检查余额");
             }
         } catch (e) {
-            updateCardStatus(index, "接口错误", "error");
+            updateStatus(i, "网络错误");
         }
     }
 
-    // 第二步：轮询状态
-    async function pollTaskStatus(index, taskId, baseUrl, apiKey) {
-        const check = setInterval(async () => {
+    // 第二步：查询进度 (针对 JiekouAI 优化)
+    async function pollStatus(i, taskId, baseUrl, apiKey) {
+        const timer = setInterval(async () => {
             try {
-                const res = await fetch(`${baseUrl}/mj/task/${taskId}/fetch`, {
-                    headers: { 'mj-api-secret': apiKey }
+                const res = await fetch(`${baseUrl}/v3/task/fetch?task_id=${taskId}`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
                 });
-                const data = await res.json();
+                const result = await res.json();
 
-                if (data.status === "SUCCESS") {
-                    clearInterval(check);
-                    const imageUrl = data.imageUrl;
-                    tasks[index].status = "success";
-                    tasks[index].url = imageUrl;
-                    
-                    const card = document.getElementById(`task-card-${index}`);
-                    card.innerHTML = `<span class="status-tag status-success">完成</span><img src="${imageUrl}" onclick="window.open('${imageUrl}')">`;
-                } else if (data.status === "FAILURE") {
-                    clearInterval(check);
-                    updateCardStatus(index, "生成失败", "error");
+                // 接口AI 的状态判断逻辑
+                if(result.status === "success" || result.status === "finished") {
+                    clearInterval(timer);
+                    const finalUrl = result.data.url;
+                    displayImage(i, finalUrl);
+                } else if(result.status === "failed") {
+                    clearInterval(timer);
+                    updateStatus(i, "生成失败");
                 } else {
-                    // 更新进度百分比
-                    updateCardStatus(index, data.progress || "排队中", "working");
+                    // 更新进度百分比或状态
+                    updateStatus(i, "生图中 " + (result.data.process || "..."));
                 }
             } catch (e) {
-                console.error("查询失败", e);
+                console.error("查询出错", e);
             }
-        }, 5000); // 每 5 秒查一次
+        }, 5000); // 每5秒查询一次
     }
 
-    function updateCardStatus(index, text, state) {
-        const card = document.getElementById(`task-card-${index}`);
-        const tag = card.querySelector('.status-tag');
-        if(tag) {
-            tag.innerText = text;
-            tag.className = `status-tag status-${state}`;
-        }
+    function updateStatus(i, text) {
+        const tag = document.getElementById(`tag-${i}`);
+        if(tag) tag.innerText = text;
     }
 
-    // 云同步逻辑
-    function syncToCloud() {
-        const successTasks = tasks.filter(t => t.status === 'success');
-        if(successTasks.length === 0) {
-            alert("尚无成功的图片可同步");
-            return;
-        }
-        
-        alert(`正在将 ${successTasks.length} 张图片中转至云储存...\n1. 下载高清图\n2. 自动上传至 OSS\n3. 生成 Temu 刊登链接`);
-        console.log("同步列表：", successTasks.map(t => t.url));
+    function displayImage(i, url) {
+        const card = document.getElementById(`card-${i}`);
+        card.innerHTML = `
+            <div class="status-tag" style="background:#2ecc71">完成</div>
+            <img src="${url}" onclick="window.open('${url}')">
+        `;
     }
 </script>
 
